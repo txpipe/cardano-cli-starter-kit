@@ -1,0 +1,8 @@
+*.skey
+*.vkey
+*.addr
+*.id
+*.script
+*.raw
+*.signed
+protocol.json
