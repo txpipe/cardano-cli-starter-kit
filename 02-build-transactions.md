@@ -56,7 +56,7 @@ MY_FUNDS="insert Amount here"
 Now we need to define how much we want to transfer. It needs to be less than the amount of available funds, also taking into account the fees for the transfer.
 
 ```sh
-TRANSFER_AMOUNT="500000"
+TRANSFER_AMOUNT="999920"
 ```
 
 Now we are ready to build the first transaction to calculate our fee and save it in a file called matx.raw. We will reference the variables in our transaction to improve readability because we saved almost all of the needed values in variables. This is what our transaction looks like:
@@ -66,6 +66,7 @@ cardano-cli transaction build \
  --testnet-magic $CARDANO_NODE_MAGIC \
  --tx-in $MY_TX_HASH#$MY_TX_IX \
  --tx-out $OTHER_ADDRESS+$TRANSFER_AMOUNT \
+ --change-address $MY_ADDRESS \
  --out-file transfer.raw
 ```
 
@@ -75,7 +76,7 @@ Transactions need to be signed to prove the authenticity and ownership of the po
 
 ```sh
 cardano-cli transaction sign  \
-    --signing-key-file other_address.skey  \
+    --signing-key-file my_address.skey  \
     --testnet-magic $CARDANO_NODE_MAGIC \
     --tx-body-file transfer.raw  \
     --out-file transfer.signed

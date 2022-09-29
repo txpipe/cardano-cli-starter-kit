@@ -8,45 +8,58 @@ First of all, we — again — need some key pairs:
 
 ```sh
 cardano-cli address key-gen \
-    --verification-key-file policy/policy.vkey \
-    --signing-key-file policy/policy.skey
+    --verification-key-file asset_policy.vkey \
+    --signing-key-file asset_policy.skey
 ```
+
+## Hash the Key
+
+We need to find the hash of the key we just generated, it will be used as data to create the policy script:
+
+```sh
+cardano-cli address key-hash --payment-verification-key-file asset_policy.vkey
+```
+
+Remeber the value for the next step.
 
 ### Create a Policy Script
 
-The file `policy/policy.script` is simple script file that defines the policy verification key as a witness to sign the minting transaction. There are no further constraints such as token locking or requiring specific signatures to successfully submit a transaction with this minting policy.
+We need to create a file that defines the policy verification key as a witness to sign the minting transaction. There are no further constraints such as token locking or requiring specific signatures to successfully submit a transaction with this minting policy.
 
-```sh
-echo "{" >> policy/policy.script 
-echo "  \"keyHash\": \"$(cardano-cli address key-hash --payment-verification-key-file policy/policy.vkey)\"," >> policy/policy.script 
-echo "  \"type\": \"sig\"" >> policy/policy.script 
-echo "}" >> policy/policy.script
+Create a new `policy.script` with the following json content, replacing the required values with the data gathered in the previous steps:
+
+```json
+{
+    "keyHash": "<POLICY_HASH>",
+    "type": "sig"
+}
 ```
+
+> **Warning**
+> make sure to replace the `<POLICY_HASH>` string with the value computed in the previous step.
 
 ### Compute the Policy Id
 
 To mint the native assets, we need to generate the policy ID from the script file we created.
 
 ```sh
-cardano-cli transaction policyid --script-file ./policy/policy.script > policy/policy.id
+cardano-cli transaction policyid --script-file policy.script > policy.id
 ```
 
 The output gets saved to the file `policy.id` as we need to reference it later on.
 
 ### Define the Token to Mint
 
+We need to defined the name for our token and the amount that we want to mint. Use the following snippet to define the values to use in following steps:
+
 ```
-tokenname1="54657374746F6B656E"
-tokenname2="5365636F6E6454657374746F6B656E"
-tokenamount="10000000"
-output="0"
+TOKEN_NAME="54657374746F6B656E"
+TOKEN_AMOUNT="10000000"
 ```
 
 ### Build the Tx
 
-Txs in Cardano are deterministic. An user building a Tx will need to provide all inputs, outputs, parameters, etc that describe the operation as a whole.
-
-Following the above, the 1st step required to build a Tx is to gather the data of the inputs. For this, lets query the UTxO of our address by running the following command:
+As we saw in part [02](./02-build-transactions.md) of the tutorial, building a transaction requires knowledge of the available UTxO in the address. Use the following command to query our address:
 
 ```sh
 cardano-cli query utxo --address $MY_ADDRESS --testnet-magic $CARDANO_NODE_MAGIC
@@ -58,29 +71,39 @@ cardano-cli query utxo --address $MY_ADDRESS --testnet-magic $CARDANO_NODE_MAGIC
 Since we need each of those values in our transaction, we will store them individually in a corresponding variable.
 
 ```sh
-txhash="insert your txhash here"
-txix="insert your TxIx here"
-funds="insert Amount here"
-policyid=$(cat policy/policy.id)
+TX_HASH="insert your txhash here"
+TX_IX="insert your TxIx here"
+TX_AMOUNT="insert your existing amount here"
 ```
 
-Also, transactions only used to calculate fees must still have a fee set, though it doesn't have to be exact. The calculated fee will be included the second time this transaction is built (i.e. the transaction to sign and submit). This first time, only the fee parameter length matters, so here we choose a maximum value (note):
+We'll also need the ID of the policy, so lets load a variable with the correspondinf value for easier access:
 
 ```sh
-fee="300000"
+POLICY_ID=$(cat policy.id)
 ```
 
-Now we are ready to build the first transaction to calculate our fee and save it in a file called matx.raw. We will reference the variables in our transaction to improve readability because we saved almost all of the needed values in variables. This is what our transaction looks like:
+Our transaction will require to pay fees. For simplicity (and because we're using test ADA), we'll just put a high number to ensure that we cover the required amount:
+
+```sh
+FEE=200000
+```
+
+To balance the transaction, we need to know which will be the remaining amount of our UTxO once we pay the fees. For that, we calculate the value using the following command:
+
+```sh
+let REMAINING=$TX_AMOUNT-$FEE
+```
+
+We will reference the variables in our transaction to improve readability because we saved almost all of the needed values in variables. This is what our transaction looks like:
 
 ```sh
 cardano-cli transaction build-raw \
- --babbage-era \
- --fee $fee \
- --tx-in $txhash#$txix \
- --tx-out $MY_ADDRESS+$funds+"$tokenamount $policyid.$tokenname1 + $tokenamount $policyid.$tokenname2" \
- --mint "$tokenamount $policyid.$tokenname1 + $tokenamount $policyid.$tokenname2" \
- --minting-script-file policy/policy.script \
- --out-file matx.raw
+ --fee $FEE \
+ --tx-in $TX_HASH#$TX_IX \
+ --tx-out $MY_ADDRESS+$REMAINING+"$TOKEN_AMOUNT $POLICY_ID.$TOKEN_NAME" \
+ --mint "$TOKEN_AMOUNT $POLICY_ID.$TOKEN_NAME" \
+ --minting-script-file policy.script \
+ --out-file mint.raw
 ```
 
 ### Sign the Transaction
@@ -89,11 +112,11 @@ Transactions need to be signed to prove the authenticity and ownership of the po
 
 ```sh
 cardano-cli transaction sign  \
-    --signing-key-file payment.skey  \
-    --signing-key-file policy/policy.skey  \
+    --signing-key-file my_address.skey  \
+    --signing-key-file asset_policy.skey  \
     --testnet-magic $CARDANO_NODE_MAGIC \
-    --tx-body-file matx.raw  \
-    --out-file matx.signed
+    --tx-body-file mint.raw  \
+    --out-file mint.signed
 ```
 
 ### Submit the Transaction
@@ -101,11 +124,19 @@ cardano-cli transaction sign  \
 Now we are going to submit the transaction, therefore minting our native assets:
 
 ```sh
-cardano-cli transaction submit --tx-file matx.signed --testnet-magic $CARDANO_NODE_MAGIC
+cardano-cli transaction submit --tx-file mint.signed --testnet-magic $CARDANO_NODE_MAGIC
 ```
 
 Congratulations, we have now successfully minted our own token. After a couple of seconds, we can check the output address
 
 ```sh
 cardano-cli query utxo --address $MY_ADDRESS --testnet-magic $CARDANO_NODE_MAGIC
+```
+
+After a few seconds, you should be able to see that your address holds the newly minted assets:
+
+```sh
+TxHash          TxIx     Amount
+--------------------------------------------------------------------------------------
+d270...77e5     0        9998470134 lovelace + 10000000 5ec1...3b76.54657374746f6b656e
 ```
