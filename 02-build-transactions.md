@@ -50,7 +50,6 @@ Since we need each of those values in our transaction, we will store them indivi
 ```sh
 MY_TX_HASH="insert your txhash here"
 MY_TX_IX="insert your TxIx here"
-MY_FUNDS="insert Amount here"
 ```
 
 Now we need to define how much we want to transfer. It needs to be less than the amount of available funds, also taking into account the fees for the transfer.
