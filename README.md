@@ -64,6 +64,6 @@ Explains how to create signing keys and addresses that represent your account wh
 
 Explains how to build a simple ADA transfer transaction and submit it onto the blockhain.
 
-### 3. [Mint Native Assets](./01-mint-native-assets.md)
+### 3. [Mint Native Assets](./03-mint-native-assets.md)
 
 Explains how to mint custom native assets and transfer those assets to other addresses.
