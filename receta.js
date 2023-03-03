@@ -42,10 +42,10 @@ haySaldo = !(totalLovelaceRecv == 0);
 console.log(`Total Received: ${totalLovelaceRecv} LOVELACE`);
 console.log(`Hay Saldo: ${(haySaldo ? "✅" : "❌")}`);
 
-cardano-cli transaction build-raw \
-    --tx-in 4e3a6e7fdcb0d0efa17bf79c13aed2b4cb9baf37fb1aa2e39553d5bd720c5c99#4 \
-    --tx-out $(cat payment2.addr)+0 \
-    --tx-out $(cat payment.addr)+0 \
-    --invalid-hereafter 0 \
-    --fee 0 \
-    --out-file tx.draft
+// cardano-cli transaction build-raw \
+//     --tx-in 4e3a6e7fdcb0d0efa17bf79c13aed2b4cb9baf37fb1aa2e39553d5bd720c5c99#4 \
+//     --tx-out $(cat payment2.addr)+0 \
+//     --tx-out $(cat payment.addr)+0 \
+//     --invalid-hereafter 0 \
+//     --fee 0 \
+//     --out-file tx.draft
