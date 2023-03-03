@@ -34,7 +34,7 @@ EOF
     echo  "Creado Archivo JSON.";
     echo  "Script Completado.";
 
-    #./01_sendLovelaces.sh my_address other_address 'MIN' $METADATA_FILE;
+    ./01_sendLovelaces.sh my_address other_address 'MIN' $METADATA_FILE;
 else
     echo "El archivo de metadata para la receta ID = ${receta_id} ya existe.";
 fi
