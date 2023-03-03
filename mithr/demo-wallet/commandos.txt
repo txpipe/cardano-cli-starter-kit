@@ -1,0 +1,135 @@
+mkdir demo-wallet
+cd demo-wallet
+ls
+cardano-cli address key-gen \
+                    --verification-key-file payment.vkey \
+                    --signing-key-file payment.skey
+ls
+payment.skey  payment.vkey
+
+cardano-cli address build \
+                    --payment-verification-key-file payment.vkey \
+                    --out-file payment.addr \
+                    --testnet-magic 2
+
+ls -l
+total 12
+-rw------- 1 abc abc  63 Feb 16 14:26 payment.addr
+-rw------- 1 abc abc 180 Feb 16 14:22 payment.skey
+-rw------- 1 abc abc 190 Feb 16 14:22 payment.vkey
+
+---->TRANFERIR DESDE WALLET EXTERNA DE "Preview" NETWORK, 1000 ADAS (1000000000 lovelaces)<------------------------
+
+cardano-cli query utxo --address addr_test1vp379gt70v3rka6f2fsr4hxsg6e63j8ce26tpe0mnm0ds4cnxlhuk --testnet-magic 2
+                           TxHash                                 TxIx        Amount
+--------------------------------------------------------------------------------------
+e91cf551643e12a7178e0c2a24c20aff22cde79bf870a8a92bf7018f4cef976d     0        1000000000 lovelace + TxOutDatumNone
+
+mkdir policy
+cardano-cli address key-gen \
+                    --verification-key-file policy/policy.vkey \
+                    --signing-key-file policy/policy.skey
+
+cardano-cli address key-hash --payment-verification-key-file policy/policy.vkey
+48151d44a0b1805251923e3dfb42c6b8dc148dccbdd4d0b19c198442
+
+mkdir policy/tokens
+touch policy/tokens/token_policy.script
+
+Agregar este contenido al archivo: 
+{
+    "type": "all",
+    "scripts": [
+        {
+            "keyHash": "48151d44a0b1805251923e3dfb42c6b8dc148dccbdd4d0b19c198442",
+            "type": "sig"
+        }
+    ]
+}
+
+cardano-cli transaction policyid --script-file ./policy/tokens/token_policy.script > ./policy/tokens/policy.id
+
+touch policy/tokens/token_meta.json
+
+Agergar este contenido al archivo: 
+{
+    "721": {
+        "8552076c8b0df713de1fcace671735ce670fc2ca1dc3c01a7ebe74d6": {
+            "MithrToken": {
+                "name": "Mithr Token",
+                "image": "ipfs://Qmck8NhetbUvVVYQzWALMzAJsUARVJ8Cr5hiNnqQ57qNMr"
+            }
+        }
+    }
+}
+
+cardano-cli query utxo \
+            --address $(cat payment.addr) \
+            --testnet-magic 2
+                           TxHash                                 TxIx        Amount
+--------------------------------------------------------------------------------------
+e91cf551643e12a7178e0c2a24c20aff22cde79bf870a8a92bf7018f4cef976d     0        1000000000 lovelace + TxOutDatumNone
+
+4D69746872546F6B656E es igual a "MithrToken" (sin comillas)
+en Hexa.  Usar esto para convertir los nombres de los token de token_meta.json 
+https://www.rapidtables.com/convert/number/ascii-to-hex.html
+
+cardano-cli transaction build-raw \
+--fee 188865 \
+--tx-in e91cf551643e12a7178e0c2a24c20aff22cde79bf870a8a92bf7018f4cef976d#0 \
+--tx-out $(cat payment.addr)+999811135+"420000000 $(cat policy/tokens/policy.id).4D69746872546F6B656E" \
+--mint="420000000 $(cat policy/tokens/policy.id).4D69746872546F6B656E" \
+--minting-script-file policy/tokens/token_policy.script \
+--metadata-json-file policy/tokens/token_meta.json \
+--out-file token_tx.raw
+
+cardano-cli  query protocol-parameters \
+                    --testnet-magic 2 \
+                    --out-file protocol.json
+
+ls
+commandos.txt  payment.addr  payment.skey  payment.vkey  policy  protocol.json  token_tx.raw
+
+cardano-cli transaction calculate-min-fee \
+--tx-body-file token_tx.raw \
+--tx-in-count 1 \
+--tx-out-count 1 \
+--witness-count 1 \
+--byron-witness-count 0 \
+--mainnet \
+--protocol-params-file protocol.json
+
+FEE: 184861 Lovelace
+
+expr 1000000000 - 184861
+999815139
+
+cardano-cli transaction build-raw \
+--fee 184861 \
+--tx-in e91cf551643e12a7178e0c2a24c20aff22cde79bf870a8a92bf7018f4cef976d#0 \
+--tx-out $(cat payment.addr)+999815139+"420000000 $(cat policy/tokens/policy.id).4D69746872546F6B656E" \
+--mint="420000000 $(cat policy/tokens/policy.id).4D69746872546F6B656E" \
+--minting-script-file policy/tokens/token_policy.script \
+--metadata-json-file policy/tokens/token_meta.json \
+--out-file token_tx.raw
+
+cardano-cli transaction sign \
+--signing-key-file payment.skey \
+--signing-key-file policy/policy.skey \
+--testnet-magic 2 \
+--tx-body-file token_tx.raw \
+--out-file token_tx.signed
+
+cardano-cli transaction submit \
+--tx-file  token_tx.signed \
+--testnet-magic 2
+
+Transaction successfully submitted.
+
+cardano-cli query utxo --address addr_test1vp379gt70v3rka6f2fsr4hxsg6e63j8ce26tpe0mnm0ds4cnxlhuk --testnet-magic 2
+
+                           TxHash                                 TxIx        Amount
+--------------------------------------------------------------------------------------
+9ed878e047edb6c1b2a69e369980b6d12e80a58b01425a41a6ec4eced75cf550     0        999815139 lovelace + 420000000 8552076c8b0df713de1fcace671735ce670fc2ca1dc3c01a7ebe74d6.4d69746872546f6b656e + TxOutDatumNone
+
+SIII !!!!
