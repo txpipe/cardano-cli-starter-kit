@@ -59,7 +59,7 @@ Now we need to define how much we want to transfer. It needs to be less than the
 TRANSFER_AMOUNT="999920"
 ```
 
-Now we are ready to build the first transaction to calculate our fee and save it in a file called matx.raw. We will reference the variables in our transaction to improve readability because we saved almost all of the needed values in variables. This is what our transaction looks like:
+Now we are ready to build the first transaction to calculate our fee and save it in a file called transfer.raw. We will reference the variables in our transaction to improve readability because we saved almost all of the needed values in variables. This is what our transaction looks like:
 
 ```sh
 cardano-cli transaction build \
